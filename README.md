@@ -64,6 +64,6 @@ A configuração do ambiente é um processo manual e requer os seguintes passos:
 ## ⚠️ Notas Importantes
 
 * **Atualizações em Lote (Batch):** Por padrão, a sincronização é feita registro a registro. Para cenários com grande quantidade de dados, recomenda-se adaptar o código para usar atualizações em lote (como o recurso `Array DML` do FireDAC) para uma performance superior.
-* **Interface Gráfica (UI):** Os componentes visuais (botões, barras de progresso, labels) devem ser adicionados e posicionados manualmente no formulário. O código fornecido contém apenas a lógica de funcionamento.
+* **Interface Gráfica (UI):** Os componentes visuais (botões, barras de progresso, labels) devem ser adicionados e posicionados conforme o arquivo .dfm no formulário. O código fornecido contém apenas a lógica de funcionamento.
 * **Segurança:** As credenciais de conexão são armazenadas em texto plano no arquivo `.ini`. Para ambientes de produção, considere utilizar métodos mais seguros para gerenciar essas informações.
 
