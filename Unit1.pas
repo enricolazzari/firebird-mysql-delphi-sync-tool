@@ -11,7 +11,7 @@ uses
   FireDAC.Phys.MySQLDef, FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf,
   FireDAC.DApt, FireDAC.Comp.DataSet, IBX.IBCustomDataSet, IBX.IBQuery,
   IBX.IBDatabase, Vcl.ComCtrls, System.IniFiles, Vcl.Buttons, System.RegularExpressions,
-  Generics.Collections, Vcl.StdCtrls;
+  Generics.Collections, Vcl.StdCtrls, System.StrUtils;
 
 type
   TFRM_Atualizar_BD = class(TForm)
@@ -29,20 +29,25 @@ type
     LabelTempoRestante: TLabel;
     LabelRegistro: TLabel;
     function ExisteCampoTabela(pNomeCampo, pNomeTabela: String): Boolean;
-    function ExisteCampoTabelaMySQL(const pNomeTabela, pNomeCampo: String): Boolean;
+    function ExisteCampoTabelaMySQL(const pNomeTabela,
+      pNomeCampo: String): Boolean;
     function ExisteTabela(pNomeTabela: String): Boolean;
     function ObterTipoMySQLCorreto(const pNomeTabela, pNomeCampo: string): Integer;
     procedure geralog;
     procedure VersaoExe;
     procedure SincronizaTabela(const Tabela: string);
     procedure CriaCampoNaTabelaMySQL(pNomeCampo, pNomeTabela, pTipo: String);
-    procedure CriaCampoAtualizadoNaTabelaMySQL(pNomeCampo, pNomeTabela, pTipo, pValorDef: String);
-    procedure CriaCampoNaTabelaFirebird(pNomeCampo, pNomeTabela, pTipo, pValorDef: String);
-    procedure CriaCampoExcluidoNaTabelaFirebird(pNomeCampo, pNomeTabela, pTipo: String);
+    procedure CriaCampoAtualizadoNaTabelaMySQL(pNomeCampo, pNomeTabela, pTipo,
+      pValorDef: String);
+    procedure CriaCampoNaTabelaFirebird(pNomeCampo, pNomeTabela, pTipo,
+      pValorDef: String);
+    procedure CriaCampoExcluidoNaTabelaFirebird(pNomeCampo, pNomeTabela,
+      pTipo: String);
     procedure CriaTabelaFirebird(pNomeTabela: String);
     procedure CriaTriggerChar(const Tabela: string);
     procedure Executa_Script_6;
-    procedure CarregarParametrosMySQL(Conn: TFDConnection; const ArquivoIni: string);
+    procedure CarregarParametrosMySQL(Conn: TFDConnection;
+      const ArquivoIni: string);
     procedure SpeedButton1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure CriaTriggerExclusao(const Tabela: string);
@@ -52,29 +57,28 @@ type
     FCacheCampos: TDictionary<string, TStringList>;
     FLogBuffer: TStringList;
     FRegexValidador: TRegEx;
-
     FTotalRegistros: Integer;
     FContadorGlobal: Integer;
     FStartTime: TDateTime;
-
     function ValidarIdentificador(const Nome: string): Boolean;
     function FBTypeToDelphiType(FBType: Integer): TFieldType;
     function GetCacheKeyCampo(const Tabela, Campo: string): string; inline;
     function GetCacheKeyTipo(const Tabela, Campo: string): string; inline;
-    function GetPrimaryKeyOrFirstField(const Tabela: string): string;
+    function GetPrimaryKeys(const Tabela: string): TStringList;
     procedure FlushLog;
     function ExisteTabelaMySQL(const pNomeTabela: string): Boolean;
-    function FirebirdTypeToMySQL(FBType: Integer; FBSubType, FBLength, FBScale: Integer): string;
+    function FirebirdTypeToMySQL(FBType: Integer; FBSubType, FBLength,
+      FBScale: Integer): string;
     procedure CriarTabelaMySQL(const NomeTabela: string);
-
+    procedure VerificarEstruturaLogExclusoes;
     procedure InicializarCaches;
     procedure LiberarCaches;
     procedure EnsureConnections;
     procedure EnsureTransaction;
   public
-    mensagem      : String;
-    versaosistema : String;
-    Ja_Executou   : Boolean;
+    mensagem: String;
+    versaosistema: String;
+    Ja_Executou: Boolean;
     destructor Destroy; override;
   end;
 
@@ -152,7 +156,6 @@ begin
   CacheKey := 'VALID_' + Nome;
   if FCacheValidacao.TryGetValue(CacheKey, Result) then
     Exit;
-
   Result := FRegexValidador.IsMatch(Nome);
   FCacheValidacao.Add(CacheKey, Result);
 end;
@@ -180,7 +183,8 @@ begin
   ibqueryestrutura.Transaction := IBTransEstrutura;
 end;
 
-function TFRM_Atualizar_BD.ObterTipoMySQLCorreto(const pNomeTabela, pNomeCampo: String): Integer;
+function TFRM_Atualizar_BD.ObterTipoMySQLCorreto(const pNomeTabela,
+  pNomeCampo: String): Integer;
 var
   CacheKey: string;
 begin
@@ -190,8 +194,7 @@ begin
 
   Result := 0;
   ibqueryestrutura.Close;
-  ibqueryestrutura.SQL.Text :=
-    'SELECT f.RDB$FIELD_TYPE ' +
+  ibqueryestrutura.SQL.Text := 'SELECT f.RDB$FIELD_TYPE ' +
     'FROM RDB$RELATION_FIELDS rf ' +
     'JOIN RDB$FIELDS f ON rf.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME ' +
     'WHERE rf.RDB$RELATION_NAME = :TABELA AND rf.RDB$FIELD_NAME = :CAMPO';
@@ -212,7 +215,8 @@ begin
   IBTransEstrutura.CommitRetaining;
 end;
 
-function TFRM_Atualizar_BD.ExisteCampoTabela(pNomeCampo, pNomeTabela: String): Boolean;
+function TFRM_Atualizar_BD.ExisteCampoTabela(pNomeCampo,
+  pNomeTabela: String): Boolean;
 var
   CacheKey: string;
 begin
@@ -222,9 +226,11 @@ begin
 
   Ibqueryestrutura.close;
   Ibqueryestrutura.Sql.clear;
-  Ibqueryestrutura.Sql.Add('select * from RDB$RELATION_FIELDS');
-  Ibqueryestrutura.Sql.Add('WHERE RDB$RELATION_FIELDS.RDB$RELATION_NAME = ' + QuotedStr(pNomeTabela));
-  Ibqueryestrutura.Sql.Add('AND RDB$RELATION_FIELDS.RDB$FIELD_NAME = ' + QuotedStr(pNomeCampo));
+  Ibqueryestrutura.Sql.Add('select RDB$FIELD_NAME from RDB$RELATION_FIELDS');
+  Ibqueryestrutura.Sql.Add('WHERE RDB$RELATION_NAME = ' +
+    QuotedStr(UpperCase(pNomeTabela)));
+  Ibqueryestrutura.Sql.Add('AND RDB$FIELD_NAME = ' +
+    QuotedStr(UpperCase(pNomeCampo)));
   Ibqueryestrutura.Open;
   Result := not Ibqueryestrutura.IsEmpty;
 
@@ -235,10 +241,215 @@ function TFRM_Atualizar_BD.ExisteTabela(pNomeTabela: String): Boolean;
 begin
   Ibqueryestrutura.close;
   Ibqueryestrutura.Sql.clear;
-  Ibqueryestrutura.Sql.Add('select * from RDB$RELATIONS');
-  Ibqueryestrutura.Sql.Add('WHERE RDB$RELATION_NAME = ' + QuotedStr(pNomeTabela));
+  Ibqueryestrutura.Sql.Add('select 1 from RDB$RELATIONS');
+  Ibqueryestrutura.Sql.Add('WHERE RDB$RELATION_NAME = ' +
+    QuotedStr(UpperCase(pNomeTabela)));
   Ibqueryestrutura.Open;
   Result := not Ibqueryestrutura.IsEmpty;
+end;
+procedure TFRM_Atualizar_BD.VerificarEstruturaLogExclusoes;
+begin
+  EnsureTransaction;
+  if not ExisteTabela('LOG_EXCLUSOES') then
+  begin
+    ibqueryestrutura.Close;
+    ibqueryestrutura.SQL.Text := 'CREATE TABLE LOG_EXCLUSOES ( ' +
+      '  CHAVE_EXCLUIDA VARCHAR(500) NOT NULL, ' +
+      '  TABELA_EXCLUIDO VARCHAR(31) NOT NULL, ' +
+      '  DATAHORA_EXCLUSAO TIMESTAMP NOT NULL )';
+    ibqueryestrutura.ExecSQL;
+    IBTransEstrutura.CommitRetaining;
+    mensagem := 'Tabela LOG_EXCLUSOES criada com nova estrutura.';
+    geralog;
+  end
+end;
+
+function TFRM_Atualizar_BD.GetPrimaryKeys(const Tabela: string): TStringList;
+begin
+  Result := TStringList.Create;
+  EnsureTransaction;
+
+
+  ibqueryestrutura.Close;
+  ibqueryestrutura.SQL.Text :=
+    'SELECT TRIM(sg.RDB$FIELD_NAME) AS CAMPO ' +
+    'FROM RDB$RELATION_CONSTRAINTS rc ' +
+    'JOIN RDB$INDEX_SEGMENTS sg ON rc.RDB$INDEX_NAME = sg.RDB$INDEX_NAME ' +
+    'WHERE rc.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
+    'AND rc.RDB$RELATION_NAME = :TABELA ' + 'ORDER BY sg.RDB$FIELD_POSITION';
+  ibqueryestrutura.ParamByName('TABELA').AsString := UpperCase(Tabela);
+  ibqueryestrutura.Open;
+
+  while not ibqueryestrutura.Eof do
+  begin
+    Result.Add(ibqueryestrutura.FieldByName('CAMPO').AsString);
+    ibqueryestrutura.Next;
+  end;
+  ibqueryestrutura.Close;
+
+
+  if Result.Count = 0 then
+  begin
+    mensagem := '[AVISO] Tabela "' + Tabela +
+      '" não possui Chave Primária (PK) definida. Usando o primeiro campo como fallback.';
+    geralog;
+
+    ibqueryestrutura.SQL.Text := 'SELECT TRIM(RDB$FIELD_NAME) AS FIELD_NAME ' +
+      'FROM RDB$RELATION_FIELDS ' + 'WHERE RDB$RELATION_NAME = :TABELA ' +
+      'ORDER BY RDB$FIELD_POSITION';
+    ibqueryestrutura.ParamByName('TABELA').AsString := UpperCase(Tabela);
+    ibqueryestrutura.Open;
+
+    if not ibqueryestrutura.IsEmpty then
+      Result.Add(ibqueryestrutura.FieldByName('FIELD_NAME').AsString);
+
+    ibqueryestrutura.Close;
+  end;
+end;
+
+procedure TFRM_Atualizar_BD.CriarTabelaMySQL(const NomeTabela: string);
+var
+  qFirebird: TIBQuery;
+  CreateSQL, campo, tipoMySQL, camposPK: string;
+  FBType, FBSubType, FBLength, FBScale: Integer;
+  isFirst: Boolean;
+  ListaChavePrimaria: TStringList;
+begin
+  if not ValidarIdentificador(NomeTabela) then
+    raise Exception.Create('Nome de tabela inválido: ' + NomeTabela);
+
+  mensagem := 'Criando tabela MySQL: ' + NomeTabela;
+  geralog;
+
+  qFirebird := TIBQuery.Create(nil);
+  ListaChavePrimaria := nil;
+  try
+    qFirebird.Database := IBDatabase1;
+    qFirebird.Transaction := IBTransEstrutura;
+
+    qFirebird.SQL.Text := 'SELECT ' +
+      '  TRIM(rf.RDB$FIELD_NAME) AS FIELD_NAME, ' + '  f.RDB$FIELD_TYPE, ' +
+      '  f.RDB$FIELD_SUB_TYPE, ' + '  f.RDB$FIELD_LENGTH, ' +
+      '  f.RDB$FIELD_SCALE, ' + '  rf.RDB$NULL_FLAG ' +
+      'FROM RDB$RELATION_FIELDS rf ' +
+      'JOIN RDB$FIELDS f ON rf.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME ' +
+      'WHERE rf.RDB$RELATION_NAME = :TABELA ' + 'ORDER BY rf.RDB$FIELD_POSITION';
+
+    qFirebird.ParamByName('TABELA').AsString := UpperCase(NomeTabela);
+    EnsureTransaction;
+    qFirebird.Open;
+
+    if qFirebird.IsEmpty then
+      raise Exception.Create('Tabela não encontrada no Firebird: ' + NomeTabela);
+
+    ListaChavePrimaria := GetPrimaryKeys(NomeTabela);
+
+    CreateSQL := Format('CREATE TABLE `%s` (', [NomeTabela]);
+    isFirst := True;
+
+    while not qFirebird.Eof do
+    begin
+      campo := qFirebird.FieldByName('FIELD_NAME').AsString;
+      FBType := qFirebird.FieldByName('RDB$FIELD_TYPE').AsInteger;
+      if qFirebird.FieldByName('RDB$FIELD_SUB_TYPE').IsNull then
+        FBSubType := 0
+      else
+        FBSubType := qFirebird.FieldByName('RDB$FIELD_SUB_TYPE').AsInteger;
+      if qFirebird.FieldByName('RDB$FIELD_LENGTH').IsNull then
+        FBLength := 0
+      else
+        FBLength := qFirebird.FieldByName('RDB$FIELD_LENGTH').AsInteger;
+      if qFirebird.FieldByName('RDB$FIELD_SCALE').IsNull then
+        FBScale := 0
+      else
+        FBScale := qFirebird.FieldByName('RDB$FIELD_SCALE').AsInteger;
+      tipoMySQL := FirebirdTypeToMySQL(FBType, FBSubType, FBLength, FBScale);
+      if not isFirst then
+        CreateSQL := CreateSQL + ', ';
+      CreateSQL := CreateSQL + Format('`%s` %s', [campo, tipoMySQL]);
+      if not qFirebird.FieldByName('RDB$NULL_FLAG').IsNull then
+        CreateSQL := CreateSQL + ' NOT NULL';
+      isFirst := False;
+      qFirebird.Next;
+    end;
+
+    if ListaChavePrimaria.Count > 0 then
+    begin
+      camposPK := '`' + StringReplace(ListaChavePrimaria.CommaText, ',', '`, `',
+        [rfReplaceAll]) + '`';
+      CreateSQL := CreateSQL + Format(', PRIMARY KEY (%s)', [camposPK]);
+    end;
+
+    CreateSQL := CreateSQL + ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+
+    mensagem := 'MySQL SQL: ' + CreateSQL;
+    geralog;
+    try
+      EnsureConnections;
+      FDConnection1.ExecSQL(CreateSQL);
+      FDConnection1.Commit;
+      mensagem := 'Tabela criada com sucesso no MySQL: ' + NomeTabela;
+      geralog;
+      FCacheValidacao.Remove('TABELA_MYSQL_' + UpperCase(NomeTabela));
+    except
+      on E: Exception do
+      begin
+        mensagem := 'Erro criando tabela MySQL ' + NomeTabela + ': ' + E.Message;
+        geralog;
+        raise;
+      end;
+    end;
+
+  finally
+    qFirebird.Free;
+    if Assigned(ListaChavePrimaria) then
+      ListaChavePrimaria.Free;
+  end;
+end;
+
+procedure TFRM_Atualizar_BD.CriaTriggerExclusao(const Tabela: string);
+var
+  ListaChavePrimaria: TStringList;
+  TriggerName, sql, camposPKConcatenados: string;
+  i: Integer;
+begin
+  ListaChavePrimaria := GetPrimaryKeys(Tabela);
+  try
+    if ListaChavePrimaria.Count = 0 then
+    begin
+      mensagem := 'Não foi possível criar trigger de exclusão para ' + Tabela +
+        ' pois não foi encontrada uma chave.';
+      geralog;
+      Exit;
+    end;
+
+    TriggerName := Format('TRG_%s_EXC', [Tabela]);
+
+    camposPKConcatenados := '';
+    for i := 0 to ListaChavePrimaria.Count - 1 do
+    begin
+      if i > 0 then
+        camposPKConcatenados := camposPKConcatenados + ' || ''|'' || ';
+      camposPKConcatenados := camposPKConcatenados + 'OLD.' +
+        ListaChavePrimaria[i];
+    end;
+
+    sql := Format('CREATE OR ALTER TRIGGER %s FOR %s ACTIVE AFTER DELETE AS ' +
+      'BEGIN ' +
+      '  INSERT INTO LOG_EXCLUSOES (CHAVE_EXCLUIDA, TABELA_EXCLUIDO, DATAHORA_EXCLUSAO) '
+      + '  VALUES (%s, ''%s'', CURRENT_TIMESTAMP);' + 'END',
+      [TriggerName, Tabela, camposPKConcatenados, Tabela]);
+
+    ibqueryestrutura.Close;
+    ibqueryestrutura.SQL.Text := sql;
+    EnsureTransaction;
+    ibqueryestrutura.ExecSQL;
+    ibqueryestrutura.Transaction.CommitRetaining;
+    mensagem := 'Trigger de exclusão criada/atualizada: ' + TriggerName;
+    geralog;
+  finally
+    ListaChavePrimaria.Free;
+  end;
 end;
 
 procedure TFRM_Atualizar_BD.CriaTabelaFirebird(pNomeTabela: String);
@@ -246,11 +457,9 @@ begin
   ibqueryestrutura.Close;
   ibqueryestrutura.SQL.Clear;
 
-  ibqueryestrutura.SQL.Add(
-    'CREATE TABLE ' + UpperCase(pNomeTabela) + ' (' +
+  ibqueryestrutura.SQL.Add('CREATE TABLE ' + UpperCase(pNomeTabela) + ' (' +
     '  ID_EXCLUIDO INTEGER NOT NULL' +
-    ')'
-  );
+    ')');
 
   ibqueryestrutura.ExecSQL;
   IBTransEstrutura.CommitRetaining;
@@ -260,7 +469,8 @@ procedure TFRM_Atualizar_BD.FlushLog;
 var
   sl: TStringList;
 begin
-  if FLogBuffer.Count = 0 then Exit;
+  if FLogBuffer.Count = 0 then
+    Exit;
 
   sl := TStringList.Create;
   try
@@ -277,7 +487,8 @@ end;
 procedure TFRM_Atualizar_BD.geralog;
 begin
   FLogBuffer.Add(FormatDateTime('dd/mm/yyyy hh:nn:ss', Now) + ' - ' + mensagem);
-  if (FLogBuffer.Count >= 50) or (Pos('Erro', mensagem) > 0) then
+  if (FLogBuffer.Count >= 50) or (Pos('Erro', mensagem) > 0) or
+    (Pos('[AVISO]', mensagem) > 0) then
     FlushLog;
 end;
 
@@ -293,12 +504,14 @@ begin
   end;
 end;
 
-procedure TFRM_Atualizar_BD.CarregarParametrosMySQL(Conn: TFDConnection; const ArquivoIni: string);
+procedure TFRM_Atualizar_BD.CarregarParametrosMySQL(Conn: TFDConnection;
+  const ArquivoIni: string);
 var
   Ini: TIniFile;
 begin
   if not FileExists(ArquivoIni) then
-    raise Exception.Create('Arquivo de parâmetros não encontrado: ' + ArquivoIni);
+    raise Exception.Create('Arquivo de parâmetros não encontrado: ' +
+      ArquivoIni);
 
   Ini := TIniFile.Create(ArquivoIni);
   try
@@ -315,7 +528,8 @@ begin
   end;
 end;
 
-function TFRM_Atualizar_BD.ExisteCampoTabelaMySQL(const pNomeTabela, pNomeCampo: String): Boolean;
+function TFRM_Atualizar_BD.ExisteCampoTabelaMySQL(const pNomeTabela,
+  pNomeCampo: String): Boolean;
 var
   q: TFDQuery;
   CacheKey: string;
@@ -325,15 +539,15 @@ begin
     Exit;
 
   Result := False;
-  if not ValidarIdentificador(pNomeTabela) or not ValidarIdentificador(pNomeCampo) then Exit;
+  if not ValidarIdentificador(pNomeTabela) or not
+    ValidarIdentificador(pNomeCampo) then
+    Exit;
 
   q := TFDQuery.Create(nil);
   try
     q.Connection := FDConnection1;
-    q.SQL.Text :=
-      'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ' +
-      'WHERE TABLE_SCHEMA = DATABASE() ' +
-      'AND TABLE_NAME = :Tabela ' +
+    q.SQL.Text := 'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ' +
+      'WHERE TABLE_SCHEMA = DATABASE() ' + 'AND TABLE_NAME = :Tabela ' +
       'AND COLUMN_NAME = :Campo';
     q.ParamByName('Tabela').AsString := pNomeTabela;
     q.ParamByName('Campo').AsString := pNomeCampo;
@@ -347,14 +561,17 @@ begin
   end;
 end;
 
-procedure TFRM_Atualizar_BD.CriaCampoNaTabelaMySQL(pNomeCampo, pNomeTabela, pTipo: String);
+procedure TFRM_Atualizar_BD.CriaCampoNaTabelaMySQL(pNomeCampo, pNomeTabela,
+  pTipo: String);
 var
   sql: string;
 begin
-  if not ValidarIdentificador(pNomeCampo) or not ValidarIdentificador(pNomeTabela) then
+  if not ValidarIdentificador(pNomeCampo) or not
+    ValidarIdentificador(pNomeTabela) then
     raise Exception.Create('Identificador inválido');
 
-  sql := Format('ALTER TABLE `%s` ADD COLUMN `%s` %s', [pNomeTabela, pNomeCampo, pTipo]);
+  sql := Format('ALTER TABLE `%s` ADD COLUMN `%s` %s',
+    [pNomeTabela, pNomeCampo, pTipo]);
   mensagem := 'MySQL SQL: ' + sql;
   geralog;
 
@@ -364,7 +581,8 @@ begin
     FDConnection1.Commit;
     mensagem := Format('Campo criado MySQL: %s.%s', [pNomeTabela, pNomeCampo]);
     geralog;
-    FCacheValidacao.Remove(GetCacheKeyCampo(pNomeTabela, pNomeCampo) + '.MYSQL');
+    FCacheValidacao.Remove(GetCacheKeyCampo(pNomeTabela, pNomeCampo) +
+      '.MYSQL');
   except
     on E: Exception do
     begin
@@ -385,15 +603,14 @@ begin
     Exit;
 
   Result := False;
-  if not ValidarIdentificador(pNomeTabela) then Exit;
+  if not ValidarIdentificador(pNomeTabela) then
+    Exit;
 
   q := TFDQuery.Create(nil);
   try
     q.Connection := FDConnection1;
-    q.SQL.Text :=
-      'SELECT 1 FROM INFORMATION_SCHEMA.TABLES ' +
-      'WHERE TABLE_SCHEMA = DATABASE() ' +
-      'AND TABLE_NAME = :Tabela';
+    q.SQL.Text := 'SELECT 1 FROM INFORMATION_SCHEMA.TABLES ' +
+      'WHERE TABLE_SCHEMA = DATABASE() ' + 'AND TABLE_NAME = :Tabela';
     q.ParamByName('Tabela').AsString := pNomeTabela;
     q.Open;
     Result := not q.IsEmpty;
@@ -405,175 +622,52 @@ begin
   end;
 end;
 
-function TFRM_Atualizar_BD.FirebirdTypeToMySQL(FBType: Integer; FBSubType, FBLength, FBScale: Integer): string;
+function TFRM_Atualizar_BD.FirebirdTypeToMySQL(FBType: Integer;
+  FBSubType, FBLength, FBScale: Integer): string;
 begin
   case FBType of
-
-    7: Result := 'SMALLINT';
-
-
-    8: Result := 'INT';
-
-
-    10: Result := 'DOUBLE';
-
-
-    12: Result := 'DATE';
-
-
-    13: Result := 'TIME';
-
-
-    14: begin
-      if FBSubType = 1 then
-        Result := Format('VARCHAR(%d)', [FBLength])
-      else
-        Result := Format('CHAR(%d)', [FBLength]);
-    end;
-
-
-    35: Result := 'DATETIME';
-
-
-    37: Result := Format('VARCHAR(%d)', [FBLength]);
-
-
-    16: Result := Format('DECIMAL(%d,%d)', [15, Abs(FBScale)]);
-
-
-    261: begin
-      if FBSubType = 1 then
-        Result := 'LONGTEXT'
-      else
-        Result := 'LONGBLOB';
-    end;
-
+    7:
+      Result := 'SMALLINT';
+    8:
+      Result := 'INT';
+    10:
+      Result := 'DOUBLE';
+    12:
+      Result := 'DATE';
+    13:
+      Result := 'TIME';
+    14:
+      begin
+        if FBSubType = 1 then
+          Result := Format('VARCHAR(%d)', [FBLength])
+        else
+          Result := Format('CHAR(%d)', [FBLength]);
+      end;
+    35:
+      Result := 'DATETIME';
+    37:
+      Result := Format('VARCHAR(%d)', [FBLength]);
+    16:
+      Result := Format('DECIMAL(%d,%d)', [15, Abs(FBScale)]);
+    261:
+      begin
+        if FBSubType = 1 then
+          Result := 'LONGTEXT'
+        else
+          Result := 'LONGBLOB';
+      end;
   else
-
     Result := 'VARCHAR(255)';
   end;
 end;
 
-procedure TFRM_Atualizar_BD.CriarTabelaMySQL(const NomeTabela: string);
-var
-  qFirebird: TIBQuery;
-  sql, CreateSQL, campo, tipoMySQL: string;
-  FBType, FBSubType, FBLength, FBScale: Integer;
-  isFirst: Boolean;
-  ChavePrimaria: string;
-begin
-  if not ValidarIdentificador(NomeTabela) then
-    raise Exception.Create('Nome de tabela inválido: ' + NomeTabela);
-
-  mensagem := 'Criando tabela MySQL: ' + NomeTabela;
-  geralog;
-
-  qFirebird := TIBQuery.Create(nil);
-  try
-    qFirebird.Database := IBDatabase1;
-    qFirebird.Transaction := IBTransEstrutura;
-
-
-    qFirebird.SQL.Text :=
-      'SELECT ' +
-      '  TRIM(rf.RDB$FIELD_NAME) AS FIELD_NAME, ' +
-      '  f.RDB$FIELD_TYPE, ' +
-      '  f.RDB$FIELD_SUB_TYPE, ' +
-      '  f.RDB$FIELD_LENGTH, ' +
-      '  f.RDB$FIELD_SCALE, ' +
-      '  rf.RDB$NULL_FLAG ' +
-      'FROM RDB$RELATION_FIELDS rf ' +
-      'JOIN RDB$FIELDS f ON rf.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME ' +
-      'WHERE rf.RDB$RELATION_NAME = :TABELA ' +
-      'ORDER BY rf.RDB$FIELD_POSITION';
-
-    qFirebird.ParamByName('TABELA').AsString := UpperCase(NomeTabela);
-
-    EnsureTransaction;
-    qFirebird.Open;
-
-    if qFirebird.IsEmpty then
-      raise Exception.Create('Tabela não encontrada no Firebird: ' + NomeTabela);
-
-
-    ChavePrimaria := GetPrimaryKeyOrFirstField(NomeTabela);
-
-    CreateSQL := Format('CREATE TABLE `%s` (', [NomeTabela]);
-    isFirst := True;
-
-    while not qFirebird.Eof do
-    begin
-      campo := qFirebird.FieldByName('FIELD_NAME').AsString;
-      FBType := qFirebird.FieldByName('RDB$FIELD_TYPE').AsInteger;
-
-
-      if qFirebird.FieldByName('RDB$FIELD_SUB_TYPE').IsNull then
-        FBSubType := 0
-      else
-        FBSubType := qFirebird.FieldByName('RDB$FIELD_SUB_TYPE').AsInteger;
-
-      if qFirebird.FieldByName('RDB$FIELD_LENGTH').IsNull then
-        FBLength := 0
-      else
-        FBLength := qFirebird.FieldByName('RDB$FIELD_LENGTH').AsInteger;
-
-      if qFirebird.FieldByName('RDB$FIELD_SCALE').IsNull then
-        FBScale := 0
-      else
-        FBScale := qFirebird.FieldByName('RDB$FIELD_SCALE').AsInteger;
-
-      tipoMySQL := FirebirdTypeToMySQL(FBType, FBSubType, FBLength, FBScale);
-
-      if not isFirst then
-        CreateSQL := CreateSQL + ', ';
-
-      CreateSQL := CreateSQL + Format('`%s` %s', [campo, tipoMySQL]);
-
-
-      if not qFirebird.FieldByName('RDB$NULL_FLAG').IsNull then
-        CreateSQL := CreateSQL + ' NOT NULL';
-
-      isFirst := False;
-      qFirebird.Next;
-    end;
-
-
-    if ChavePrimaria <> '' then
-      CreateSQL := CreateSQL + Format(', PRIMARY KEY (`%s`)', [ChavePrimaria]);
-
-    CreateSQL := CreateSQL + ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
-
-
-    mensagem := 'MySQL SQL: ' + CreateSQL;
-    geralog;
-
-    try
-      EnsureConnections;
-      FDConnection1.ExecSQL(CreateSQL);
-      FDConnection1.Commit;
-      mensagem := 'Tabela criada com sucesso no MySQL: ' + NomeTabela;
-      geralog;
-      FCacheValidacao.Remove('TABELA_MYSQL_' + UpperCase(NomeTabela));
-
-    except
-      on E: Exception do
-      begin
-        mensagem := 'Erro criando tabela MySQL ' + NomeTabela + ': ' + E.Message;
-        geralog;
-        raise;
-      end;
-    end;
-
-  finally
-    qFirebird.Free;
-  end;
-end;
-
-procedure TFRM_Atualizar_BD.CriaCampoAtualizadoNaTabelaMySQL(pNomeCampo, pNomeTabela, pTipo, pValorDef: String);
+procedure TFRM_Atualizar_BD.CriaCampoAtualizadoNaTabelaMySQL(pNomeCampo,
+  pNomeTabela, pTipo, pValorDef: String);
 var
   sql: string;
 begin
-  if not ValidarIdentificador(pNomeCampo) or not ValidarIdentificador(pNomeTabela) then
+  if not ValidarIdentificador(pNomeCampo) or not
+    ValidarIdentificador(pNomeTabela) then
     raise Exception.Create('Identificador inválido');
 
   sql := Format('ALTER TABLE `%s` ADD COLUMN `%s` %s DEFAULT %s',
@@ -587,8 +681,8 @@ begin
     FDConnection1.Commit;
     mensagem := Format('Campo criado MySQL: %s.%s', [pNomeTabela, pNomeCampo]);
     geralog;
-    FCacheValidacao.Remove(GetCacheKeyCampo(pNomeTabela, pNomeCampo) + '.MYSQL');
-
+    FCacheValidacao.Remove(GetCacheKeyCampo(pNomeTabela, pNomeCampo) +
+      '.MYSQL');
   except
     on E: Exception do
     begin
@@ -599,19 +693,20 @@ begin
   end;
 end;
 
-procedure TFRM_Atualizar_BD.CriaCampoNaTabelaFirebird(pNomeCampo, pNomeTabela, pTipo, pValorDef: String);
+procedure TFRM_Atualizar_BD.CriaCampoNaTabelaFirebird(pNomeCampo,
+  pNomeTabela, pTipo, pValorDef: String);
 var
   sql: string;
 begin
-  if not ValidarIdentificador(pNomeCampo) or not ValidarIdentificador(pNomeTabela) then
+  if not ValidarIdentificador(pNomeCampo) or not
+    ValidarIdentificador(pNomeTabela) then
     raise Exception.Create('Identificador inválido');
 
   if pValorDef <> '' then
-    sql := Format('ALTER TABLE %s ADD %s %s DEFAULT %s',
-      [pNomeTabela, pNomeCampo, pTipo, QuotedStr(pValorDef)])
+    sql := Format('ALTER TABLE %s ADD %s %s DEFAULT %s', [pNomeTabela,
+      pNomeCampo, pTipo, QuotedStr(pValorDef)])
   else
-    sql := Format('ALTER TABLE %s ADD %s %s',
-      [pNomeTabela, pNomeCampo, pTipo]);
+    sql := Format('ALTER TABLE %s ADD %s %s', [pNomeTabela, pNomeCampo, pTipo]);
 
   mensagem := 'Firebird SQL: ' + sql;
   geralog;
@@ -624,7 +719,8 @@ begin
     EnsureTransaction;
     ibqueryestrutura.ExecSQL;
     ibqueryestrutura.Transaction.CommitRetaining;
-    mensagem := Format('Campo criado Firebird: %s.%s', [pNomeTabela, pNomeCampo]);
+    mensagem := Format('Campo criado Firebird: %s.%s',
+      [pNomeTabela, pNomeCampo]);
     geralog;
     FCacheValidacao.Remove(GetCacheKeyCampo(pNomeTabela, pNomeCampo) + '.FB');
   except
@@ -639,14 +735,15 @@ begin
   end;
 end;
 
-procedure TFRM_Atualizar_BD.CriaCampoExcluidoNaTabelaFirebird(pNomeCampo, pNomeTabela, pTipo: String);
+procedure TFRM_Atualizar_BD.CriaCampoExcluidoNaTabelaFirebird(pNomeCampo,
+  pNomeTabela, pTipo: String);
 var
   sql: string;
 begin
-  if not ValidarIdentificador(pNomeCampo) or not ValidarIdentificador(pNomeTabela) then
+  if not ValidarIdentificador(pNomeCampo) or not
+    ValidarIdentificador(pNomeTabela) then
     raise Exception.Create('Identificador inválido');
-    sql := Format('ALTER TABLE %s ADD %s %s',
-      [pNomeTabela, pNomeCampo, pTipo]);
+  sql := Format('ALTER TABLE %s ADD %s %s', [pNomeTabela, pNomeCampo, pTipo]);
 
   mensagem := 'Firebird SQL: ' + sql;
   geralog;
@@ -659,7 +756,8 @@ begin
     EnsureTransaction;
     ibqueryestrutura.ExecSQL;
     ibqueryestrutura.Transaction.CommitRetaining;
-    mensagem := Format('Campo criado Firebird: %s.%s', [pNomeTabela, pNomeCampo]);
+    mensagem := Format('Campo criado Firebird: %s.%s',
+      [pNomeTabela, pNomeCampo]);
     geralog;
     FCacheValidacao.Remove(GetCacheKeyCampo(pNomeTabela, pNomeCampo) + '.FB');
   except
@@ -681,100 +779,16 @@ var
 begin
   TriggerName := 'TRG_' + Tabela + '_UPD';
 
-  sql := Format(
-    'CREATE OR ALTER TRIGGER %s FOR %s ' +
-    'ACTIVE BEFORE INSERT OR UPDATE ' +
-    'AS ' +
-    'BEGIN ' +
+  sql := Format('CREATE OR ALTER TRIGGER %s FOR %s ' +
+    'ACTIVE BEFORE INSERT OR UPDATE ' + 'AS ' + 'BEGIN ' +
     '  IF (INSERTING OR (NEW.ATUALIZADO = OLD.ATUALIZADO)) THEN ' +
-    '    NEW.ATUALIZADO = ''N''; ' +
-    'END',
-    [TriggerName, Tabela]);
+    '    NEW.ATUALIZADO = ''N''; ' + 'END', [TriggerName, Tabela]);
 
   ibqueryestrutura.Close;
   ibqueryestrutura.SQL.Text := sql;
   EnsureTransaction;
   ibqueryestrutura.ExecSQL;
   IBTransEstrutura.CommitRetaining;
-end;
-
-procedure TFRM_Atualizar_BD.CriaTriggerExclusao(const Tabela: string);
-var
-  ChavePrimaria, TriggerName: string;
-  sql: string;
-begin
-  ChavePrimaria := GetPrimaryKeyOrFirstField(Tabela);
-  TriggerName := Format('TRG_%s_EXC', [Tabela]);
-
- sql := Format(
-  'CREATE OR ALTER TRIGGER %s FOR %s ACTIVE AFTER DELETE AS BEGIN ' +
-  'INSERT INTO LOG_EXCLUSOES (ID_EXCLUIDO, TABELA_EXCLUIDO, DATAHORA_EXCLUSAO) ' +
-  'VALUES (OLD.%s, ''%s'',CURRENT_TIMESTAMP);' +
-  'END',
-  [TriggerName, Tabela, ChavePrimaria, Tabela]);
-
-  ibqueryestrutura.Close;
-  ibqueryestrutura.SQL.Clear;
-  ibqueryestrutura.SQL.Add(sql);
-
-  try
-    EnsureTransaction;
-    ibqueryestrutura.ExecSQL;
-    ibqueryestrutura.Transaction.CommitRetaining;
-    mensagem := 'Trigger criada: ' + TriggerName;
-    geralog;
-  except
-    on E: Exception do
-    begin
-      if ibqueryestrutura.Transaction.InTransaction then
-        ibqueryestrutura.Transaction.Rollback;
-      mensagem := 'Erro trigger Firebird: ' + E.Message;
-      geralog;
-      raise;
-    end;
-  end;
-end;
-
-function TFRM_Atualizar_BD.GetPrimaryKeyOrFirstField(const Tabela: string): string;
-var
-  Q: TIBQuery;
-begin
-  Result := '';
-  Q := TIBQuery.Create(nil);
-  try
-    Q.Database := IBDatabase1;
-    Q.Transaction := IBTransEstrutura;
-
-    Q.SQL.Text :=
-      'SELECT TRIM(seg.RDB$FIELD_NAME) AS FIELD_NAME ' +
-      'FROM RDB$INDEX_SEGMENTS seg ' +
-      'JOIN RDB$INDICES idx ON idx.RDB$INDEX_NAME = seg.RDB$INDEX_NAME ' +
-      'JOIN RDB$RELATION_CONSTRAINTS rc ON rc.RDB$INDEX_NAME = idx.RDB$INDEX_NAME ' +
-      'WHERE rc.RDB$CONSTRAINT_TYPE = ''PRIMARY KEY'' ' +
-      'AND rc.RDB$RELATION_NAME = :TABELA ' +
-      'ORDER BY seg.RDB$FIELD_POSITION';
-    Q.ParamByName('TABELA').AsString := UpperCase(Tabela);
-    Q.Open;
-    if not Q.IsEmpty then
-    begin
-      Result := Q.FieldByName('FIELD_NAME').AsString;
-      Exit;
-    end;
-    Q.Close;
-
-    Q.SQL.Text :=
-      'SELECT TRIM(RDB$FIELD_NAME) AS FIELD_NAME ' +
-      'FROM RDB$RELATION_FIELDS ' +
-      'WHERE RDB$RELATION_NAME = :TABELA ' +
-      'ORDER BY RDB$FIELD_POSITION';
-    Q.ParamByName('TABELA').AsString := UpperCase(Tabela);
-    Q.Open;
-    if not Q.IsEmpty then
-      Result := Q.FieldByName('FIELD_NAME').AsString;
-
-  finally
-    Q.Free;
-  end;
 end;
 
 procedure TFRM_Atualizar_BD.SincronizaTabela(const Tabela: string);
@@ -788,7 +802,8 @@ var
   elapsed, avgPerReg, remaining: Double;
   remainingSec: Integer;
 begin
-  if not ValidarIdentificador(Tabela) then Exit;
+  if not ValidarIdentificador(Tabela) then
+    Exit;
   CacheKey := 'CAMPOS_' + UpperCase(Tabela);
 
   if SameText(Tabela, 'LOG_EXCLUSOES') then
@@ -805,6 +820,9 @@ begin
       'WHERE RDB$RELATION_NAME = ' + QuotedStr(UpperCase(Tabela)) +
       ' ORDER BY RDB$FIELD_POSITION';
     ibqueryestrutura.Open;
+    if not ibqueryestrutura.Eof then
+      ibqueryestrutura.First;
+
     while not ibqueryestrutura.Eof do
     begin
       Campo := Trim(ibqueryestrutura.FieldByName('CAMPO').AsString);
@@ -822,7 +840,8 @@ begin
     QMySQL.Connection := FDConnection1;
     qFirebird.Database := IBDatabase1;
     qFirebird.Transaction := IBTransEstrutura;
-    qFirebird.SQL.Text := Format('SELECT * FROM %s WHERE ATUALIZADO = ''N''', [Tabela]);
+    qFirebird.SQL.Text := Format('SELECT * FROM %s WHERE ATUALIZADO = ''N''',
+      [Tabela]);
     EnsureTransaction;
     qFirebird.Open;
     TotalRegistros := qFirebird.RecordCount;
@@ -831,65 +850,70 @@ begin
       ProgressBar1.Max := FTotalRegistros;
       FContadorGlobal := FContadorGlobal - TotalRegistros;
     end;
-    FieldList := StringReplace(ListaCampos.CommaText, ',', ', ', [rfReplaceAll]);
-    ParamList := ':' + StringReplace(ListaCampos.CommaText, ',', ', :', [rfReplaceAll]);
+    FieldList := '`' + StringReplace(ListaCampos.CommaText, ',', '`, `',
+      [rfReplaceAll]) + '`';
+    ParamList := ':' + StringReplace(ListaCampos.CommaText, ',', ', :',
+      [rfReplaceAll]);
     UpdateList := '';
     for i := 0 to ListaCampos.Count - 1 do
     begin
-      if i > 0 then UpdateList := UpdateList + ', ';
-      UpdateList := UpdateList + ListaCampos[i] + ' = VALUES(' + ListaCampos[i] + ')';
+      if i > 0 then
+        UpdateList := UpdateList + ', ';
+      UpdateList := UpdateList + '`' + ListaCampos[i] + '` = VALUES(`' +
+        ListaCampos[i] + '`)';
     end;
 
-     if not qFirebird.IsEmpty then
+    if not qFirebird.IsEmpty then
     begin
       qFirebird.First;
-    while not qFirebird.Eof do
-    begin
-      if ListaCampos.Count > 0 then
-        PrimeiroCampoValor := qFirebird.FieldByName(ListaCampos[0]).AsString
-      else
-        PrimeiroCampoValor := '';
-      QMySQL.SQL.Text := Format(
-        'INSERT INTO %s (%s, ATUALIZADO) VALUES (%s, ''S'') ' +
-        'ON DUPLICATE KEY UPDATE %s, ATUALIZADO = ''S''',
-        [Tabela, FieldList, ParamList, UpdateList]
-      );
-      for i := 0 to ListaCampos.Count - 1 do
+      while not qFirebird.Eof do
       begin
-        Campo := ListaCampos[i];
-        var fbType := ObterTipoMySQLCorreto(Tabela, Campo);
-        QMySQL.ParamByName(Campo).DataType := FBTypeToDelphiType(fbType);
-        if not qFirebird.FieldByName(Campo).IsNull then
-          QMySQL.ParamByName(Campo).Value := qFirebird.FieldByName(Campo).Value
+        if ListaCampos.Count > 0 then
+          PrimeiroCampoValor := qFirebird.FieldByName(ListaCampos[0]).AsString
         else
-          QMySQL.ParamByName(Campo).Clear;
-      end;
-      try
-        QMySQL.Prepare;
-        QMySQL.ExecSQL;
-        FDConnection1.Commit;
-      except
-        on E: Exception do
+          PrimeiroCampoValor := '';
+        QMySQL.SQL.Text := Format('INSERT INTO `%s` (%s, `ATUALIZADO`) VALUES (%s, ''S'') '
+          + 'ON DUPLICATE KEY UPDATE %s, `ATUALIZADO` = ''S''', [Tabela,
+          FieldList, ParamList, UpdateList]);
+        for i := 0 to ListaCampos.Count - 1 do
         begin
-          mensagem := 'Erro ao inserir/atualizar registro "' + PrimeiroCampoValor + '" - ' + E.Message;
-          geralog;
+          Campo := ListaCampos[i];
+          var fbType := ObterTipoMySQLCorreto(Tabela, Campo);
+          QMySQL.ParamByName(Campo).DataType := FBTypeToDelphiType(fbType);
+          if not qFirebird.FieldByName(Campo).IsNull then
+            QMySQL.ParamByName(Campo).Value := qFirebird.FieldByName(Campo)
+              .Value
+          else
+            QMySQL.ParamByName(Campo).Clear;
         end;
+        try
+          QMySQL.Prepare;
+          QMySQL.ExecSQL;
+          FDConnection1.Commit;
+        except
+          on E: Exception do
+          begin
+            mensagem := 'Erro ao inserir/atualizar registro na tabela "' +
+              Tabela + '" - ' + E.Message;
+            geralog;
+          end;
+        end;
+        Inc(FContadorGlobal);
+        ProgressBar1.Position := FContadorGlobal;
+        if FTotalRegistros > 0 then
+        begin
+          elapsed := (Now - FStartTime) * 24 * 60 * 60;
+          avgPerReg := elapsed / FContadorGlobal;
+          remaining := (FTotalRegistros - FContadorGlobal) * avgPerReg;
+          remainingSec := Round(remaining);
+          LabelTempoRestante.Caption := Format('Tempo restante: %d min %d s',
+            [remainingSec div 60, remainingSec mod 60]);
+        end;
+        LabelRegistro.Caption := Format('Registro: %d/%d', [FContadorGlobal,
+          FTotalRegistros]);
+        Application.ProcessMessages;
+        qFirebird.Next;
       end;
-      Inc(FContadorGlobal);
-      ProgressBar1.Position := FContadorGlobal;
-      if FTotalRegistros > 0 then
-      begin
-        elapsed := (Now - FStartTime) * 24 * 60 * 60;
-        avgPerReg := elapsed / FContadorGlobal;
-        remaining := (FTotalRegistros - FContadorGlobal) * avgPerReg;
-        remainingSec := Round(remaining);
-        LabelTempoRestante.Caption := Format('Tempo restante: %d min %d s',
-          [remainingSec div 60, remainingSec mod 60]);
-      end;
-      LabelRegistro.Caption := Format('Registro: %d/%d', [FContadorGlobal, FTotalRegistros]);
-      Application.ProcessMessages;
-      qFirebird.Next;
-    end;
     end;
   finally
     QMySQL.Free;
@@ -901,14 +925,20 @@ end;
 procedure TFRM_Atualizar_BD.Executa_Script_6;
 var
   ListaTabelas: TStringList;
-  i, TotalTabelas, TotalGeralRegistros: Integer;
+  i: Integer;
+  TotalTabelas, TotalGeralRegistros: Integer;
   QFirebirdDel: TIBQuery;
   QMySQLDel: TFDQuery;
-  IdExcluido, NomeTabela, ChavePrimaria: string;
+  ListaPKCampos: TStringList;
+  ValoresPK: TArray<string>;
+  NomeTabela, ChaveCompostaValores, whereClause: string;
 begin
   EnsureConnections;
   EnsureTransaction;
 
+  VerificarEstruturaLogExclusoes;
+
+  ListaTabelas := TStringList.Create;
   QFirebirdDel := TIBQuery.Create(nil);
   QMySQLDel := TFDQuery.Create(nil);
   try
@@ -916,91 +946,101 @@ begin
     QFirebirdDel.Transaction := IBTransEstrutura;
     QMySQLDel.Connection := FDConnection1;
 
-    try
-      QFirebirdDel.SQL.Text := 'SELECT ID_EXCLUIDO, TABELA_EXCLUIDO FROM LOG_EXCLUSOES';
-      QFirebirdDel.Open;
-    except
-      on E: Exception do
-      begin
-        mensagem := 'Erro ao abrir LOG_EXCLUSOES: ' + E.Message;
-        geralog;
-        raise;
-      end;
-    end;
-    showmessage(QFirebirdDel.FieldByName('ID_EXCLUIDO').Asstring);
-    if not QFirebirdDel.IsEmpty then
+    ibqueryestrutura.Close;
+    ibqueryestrutura.SQL.Text :=
+      'SELECT TRIM(RDB$RELATION_NAME) AS TABELA FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 ORDER BY RDB$RELATION_NAME';
+    ibqueryestrutura.Open;
+    while not ibqueryestrutura.Eof do
     begin
-      QFirebirdDel.First;
-      while not QFirebirdDel.Eof do
-      begin
-        showmessage(QFirebirdDel.FieldByName('ID_EXCLUIDO').Asstring);
-        IdExcluido := QFirebirdDel.FieldByName('ID_EXCLUIDO').AsString;
-        NomeTabela := QFirebirdDel.FieldByName('TABELA_EXCLUIDO').AsString;
-        ChavePrimaria := GetPrimaryKeyOrFirstField(NomeTabela);
+      ListaTabelas.Add(UpperCase(Trim(ibqueryestrutura.FieldByName('TABELA')
+        .AsString)));
+      ibqueryestrutura.Next;
+    end;
+    ibqueryestrutura.Close;
+    for i := 0 to ListaTabelas.Count - 1 do
+    begin
+      if SameText(ListaTabelas[i], 'LOG_EXCLUSOES') then
+        Continue;
+      if not ExisteTabelaMySQL(ListaTabelas[i]) then
+        CriarTabelaMySQL(ListaTabelas[i]);
+    end;
 
-        if ChavePrimaria = '' then
+    QFirebirdDel.SQL.Text :=
+      'SELECT CHAVE_EXCLUIDA, TABELA_EXCLUIDO FROM LOG_EXCLUSOES';
+    QFirebirdDel.Open;
+
+    while not QFirebirdDel.Eof do
+    begin
+      NomeTabela := QFirebirdDel.FieldByName('TABELA_EXCLUIDO').AsString;
+      ChaveCompostaValores := QFirebirdDel.FieldByName('CHAVE_EXCLUIDA')
+        .AsString;
+      ListaPKCampos := nil;
+      try
+        ListaPKCampos := GetPrimaryKeys(NomeTabela);
+        if ListaPKCampos.Count = 0 then
         begin
-          mensagem := 'Chave primária não encontrada para tabela: ' + NomeTabela;
+          mensagem :=
+            'Erro ao processar exclusão: Não foi possível determinar a PK da tabela '
+            + NomeTabela;
           geralog;
           QFirebirdDel.Next;
           Continue;
         end;
 
-        try
-          EnsureTransaction;
-          QMySQLDel.SQL.Text := Format('DELETE FROM `%s` WHERE `%s` = :ID', [NomeTabela, ChavePrimaria]);
-          QMySQLDel.ParamByName('ID').AsString := IdExcluido;
-          QMySQLDel.ExecSQL;
-          FDConnection1.Commit;
+        ValoresPK := ChaveCompostaValores.Split(['|']);
 
-          ibqueryestrutura.Close;
-          ibqueryestrutura.SQL.Text := 'DELETE FROM LOG_EXCLUSOES WHERE ID_EXCLUIDO = :ID AND TABELA_EXCLUIDO = :TABELA';
-          ibqueryestrutura.ParamByName('ID').AsString := IdExcluido;
-          ibqueryestrutura.ParamByName('TABELA').AsString := NomeTabela;
-          ibqueryestrutura.ExecSQL;
-
-          EnsureTransaction;
-        except
-          on E: Exception do
-          begin
-            if IBTransEstrutura.InTransaction then
-              IBTransEstrutura.Rollback;
-            mensagem := 'Erro ao deletar ID ' + IdExcluido + ' da tabela ' + NomeTabela + ' - ' + E.Message;
-            geralog;
-          end;
+        if ListaPKCampos.Count <> Length(ValoresPK) then
+        begin
+          mensagem := Format('Erro de integridade no log para tabela %s. ' +
+            'Contagem de campos da PK (%d) difere da contagem de valores no log (%d). Valor: %s',
+            [NomeTabela, ListaPKCampos.Count, Length(ValoresPK),
+            ChaveCompostaValores]);
+          geralog;
+          QFirebirdDel.Next;
+          Continue;
         end;
-        QFirebirdDel.Next;
+
+        whereClause := '';
+        for i := 0 to ListaPKCampos.Count - 1 do
+        begin
+          if i > 0 then
+            whereClause := whereClause + ' AND ';
+          whereClause := whereClause + Format('`%s` = :%s', [ListaPKCampos[i],
+            ListaPKCampos[i]]);
+        end;
+
+        QMySQLDel.SQL.Text := Format('DELETE FROM `%s` WHERE %s', [NomeTabela,
+          whereClause]);
+
+        for i := 0 to ListaPKCampos.Count - 1 do
+        begin
+          QMySQLDel.ParamByName(ListaPKCampos[i]).AsString := ValoresPK[i];
+        end;
+
+        QMySQLDel.ExecSQL;
+        FDConnection1.Commit;
+
+        ibqueryestrutura.Close;
+        ibqueryestrutura.SQL.Text :=
+          'DELETE FROM LOG_EXCLUSOES WHERE CHAVE_EXCLUIDA = :CHAVE AND TABELA_EXCLUIDO = :TABELA';
+        ibqueryestrutura.ParamByName('CHAVE').AsString := ChaveCompostaValores;
+        ibqueryestrutura.ParamByName('TABELA').AsString := NomeTabela;
+        ibqueryestrutura.ExecSQL;
+        IBTransEstrutura.CommitRetaining;
+      except
+        on E: Exception do
+        begin
+          mensagem := Format('Erro ao deletar registro com chave "%s" da tabela %s: %s',
+            [ChaveCompostaValores, NomeTabela, E.Message]);
+          geralog;
+          IBTransEstrutura.RollbackRetaining;
+        end;
       end;
+      if Assigned(ListaPKCampos) then
+        ListaPKCampos.Free;
+      QFirebirdDel.Next;
     end;
-  finally
-    QFirebirdDel.Free;
-    QMySQLDel.Free;
-    FlushLog;
-  end;
-
-  ListaTabelas := TStringList.Create;
-  try
-    ibqueryestrutura.Close;
-    ibqueryestrutura.SQL.Clear;
-    ibqueryestrutura.SQL.Add(
-      'SELECT TRIM(RDB$RELATION_NAME) AS TABELA ' +
-      'FROM RDB$RELATIONS ' +
-      'WHERE RDB$SYSTEM_FLAG = 0 ' +
-      'ORDER BY RDB$RELATION_NAME'
-    );
-    ibqueryestrutura.Open;
-    while not ibqueryestrutura.Eof do
-    begin
-      ListaTabelas.Add(UpperCase(Trim(ibqueryestrutura.FieldByName('TABELA').AsString)));
-      ibqueryestrutura.Next;
-    end;
-    ibqueryestrutura.Close;
-
-    for i := 0 to ListaTabelas.Count - 1 do
-    begin
-      if not ExisteTabelaMySQL(ListaTabelas[i]) then
-        CriarTabelaMySQL(ListaTabelas[i]);
-    end;
+    QFirebirdDel.Close;
 
     for i := 0 to ListaTabelas.Count - 1 do
     begin
@@ -1008,15 +1048,18 @@ begin
         Continue;
       if not ExisteCampoTabela('ATUALIZADO', ListaTabelas[i]) then
       begin
-        CriaCampoNaTabelaFirebird('ATUALIZADO', ListaTabelas[i], 'CHAR(1)', '''N''');
+        CriaCampoNaTabelaFirebird('ATUALIZADO', ListaTabelas[i], 'CHAR(1)',
+          '''N''');
       end;
       if not ExisteCampoTabelaMySQL(ListaTabelas[i], 'ATUALIZADO') then
       begin
-        CriaCampoAtualizadoNaTabelaMySQL('ATUALIZADO', ListaTabelas[i], 'CHAR(1)', 'S');
+        CriaCampoAtualizadoNaTabelaMySQL('ATUALIZADO', ListaTabelas[i],
+          'CHAR(1)', 'S');
       end;
       EnsureTransaction;
       ibqueryestrutura.Close;
-      ibqueryestrutura.SQL.Text := Format('UPDATE %s SET ATUALIZADO = ''N'' WHERE ATUALIZADO IS NULL', [ListaTabelas[i]]);
+      ibqueryestrutura.SQL.Text := Format('UPDATE %s SET ATUALIZADO = ''N'' WHERE ATUALIZADO IS NULL',
+        [ListaTabelas[i]]);
       ibqueryestrutura.ExecSQL;
       IBTransEstrutura.CommitRetaining;
     end;
@@ -1028,10 +1071,13 @@ begin
       if SameText(ListaTabelas[i], 'LOG_EXCLUSOES') then
         Continue;
       ibqueryestrutura.Close;
-      ibqueryestrutura.SQL.Text := Format('SELECT COUNT(*) FROM %s WHERE ATUALIZADO = ''N''', [ListaTabelas[i]]);
+      ibqueryestrutura.SQL.Text :=
+        Format('SELECT COUNT(*) FROM %s WHERE ATUALIZADO = ''N''',
+        [ListaTabelas[i]]);
       try
         ibqueryestrutura.Open;
-        TotalGeralRegistros := TotalGeralRegistros + ibqueryestrutura.Fields[0].AsInteger;
+        TotalGeralRegistros := TotalGeralRegistros +
+          ibqueryestrutura.Fields[0].AsInteger;
       finally
         ibqueryestrutura.Close;
       end;
@@ -1046,20 +1092,24 @@ begin
     ProgressBar1.Visible := True;
     FStartTime := Now;
 
-    mensagem := Format('Iniciando sincronização de %d tabelas, com um total de %d registros...', [TotalTabelas, FTotalRegistros]);
+    mensagem := Format('Iniciando sincronização de %d tabelas, com um total de %d registros...',
+      [TotalTabelas, FTotalRegistros]);
     geralog;
     for i := 0 to ListaTabelas.Count - 1 do
     begin
       if SameText(ListaTabelas[i], 'LOG_EXCLUSOES') then
         Continue;
-      Self.Caption := Format('Sincronização - Tabela %d/%d: %s', [i + 1, TotalTabelas, ListaTabelas[i]]);
+      Self.Caption := Format('Sincronização - Tabela %d/%d: %s',
+        [i + 1, TotalTabelas, ListaTabelas[i]]);
       SincronizaTabela(ListaTabelas[i]);
       CriaTriggerChar(ListaTabelas[i]);
       CriaTriggerExclusao(ListaTabelas[i]);
       Application.ProcessMessages;
       try
         ibqueryestrutura.Close;
-        ibqueryestrutura.SQL.Text := Format('UPDATE %s SET ATUALIZADO = ''S'' WHERE ATUALIZADO = ''N''', [ListaTabelas[i]]);
+        ibqueryestrutura.SQL.Text :=
+          Format('UPDATE %s SET ATUALIZADO = ''S'' WHERE ATUALIZADO = ''N''',
+          [ListaTabelas[i]]);
         EnsureTransaction;
         ibqueryestrutura.ExecSQL;
         IBTransEstrutura.CommitRetaining;
@@ -1072,11 +1122,14 @@ begin
     Self.Caption := 'Sincronização Concluída';
     ProgressBar1.Visible := False;
     LabelTempoRestante.Caption := 'Concluído!';
-    mensagem := Format('Sincronização de todas as %d tabelas e %d registros concluída com sucesso!', [TotalTabelas, FTotalRegistros]);
+    mensagem := Format('Sincronização de todas as %d tabelas e %d registros concluída com sucesso!',
+      [TotalTabelas, FTotalRegistros]);
     geralog;
 
   finally
     ListaTabelas.Free;
+    QFirebirdDel.Free;
+    QMySQLDel.Free;
     FlushLog;
   end;
 end;
