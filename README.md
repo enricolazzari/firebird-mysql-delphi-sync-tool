@@ -66,3 +66,4 @@ Setting up the environment is a manual process and requires the following steps:
 * **Batch Updates:** By default, synchronization is done record by record. For scenarios with a large amount of data, it is recommended to adapt the code to use batch updates (such as FireDAC's `Array DML`) for better performance.
 * **User Interface (UI):** Visual components (buttons, progress bars, labels) must be added and positioned according to the `.dfm` file in the form. The provided code contains only the logic.
 * **Security:** Connection credentials are stored in plain text in the `.ini` file. For production environments, consider using more secure methods to manage these credentials.
+* **About the INI and LIBS:** All files containing information that is used in the project must be added to the directory where the program compiles.
