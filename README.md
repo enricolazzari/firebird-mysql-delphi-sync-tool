@@ -4,9 +4,9 @@ Data synchronizer between Firebird and MySQL developed in Delphi.
 
 This project is a **unidirectional synchronization tool** developed in Delphi 10.4 (32-bit). Its main purpose is to read the structure and data from a Firebird 3.5 database and replicate it to a MySQL 8.0.43 database, keeping MySQL as an up-to-date mirror of Firebird.
 
-![Delphi](https://img.shields.io/badge/Delphi-10.4-blue)
-![Firebird](https://img.shields.io/badge/Firebird-3.5-orange)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-green)
+![Delphi](https://img.shields.io/badge/Delphi-10.4-B22222?style=for-the-badge&logo=delphi&logoColor=white)
+![Firebird](https://img.shields.io/badge/Firebird-3.5-FF4500?style=for-the-badge&logo=firebird&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 
 ## ✨ Key Features
 
