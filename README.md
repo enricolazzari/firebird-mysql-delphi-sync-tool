@@ -16,6 +16,8 @@ This project is a **unidirectional synchronization tool** developed in Delphi 10
 * **Deletion Handling:** Employs a `LOG_DELETIONS` table and delete triggers in Firebird to replicate record deletions in the MySQL database.
 * **Operation Logging:** Generates a `synchronization_log.txt` file with a detailed record of operations and possible errors during the process.
 
+![Demonstração da Sincronização](assets/synctoolfirebirdmysql.gif)
+
 ## 🛠️ Technologies and Prerequisites
 
 * **Language:** Delphi 10.4 (32-bit)
