@@ -49,8 +49,7 @@ type
     procedure CriaTabelaFirebird(pNomeTabela: String);
     procedure CriaTriggerChar(const Tabela: string);
     procedure Executa_Script_6;
-    procedure CarregarParametrosMySQL(Conn: TFDConnection;
-      const ArquivoIni: string);
+    procedure CarregarParametrosMySQL(Conn: TFDConnection);
     procedure SpeedButton1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure CriaTriggerExclusao(const Tabela: string);
@@ -470,23 +469,25 @@ begin
   end;
 end;
 
-procedure TFRM_Atualizar_BD.CarregarParametrosMySQL(Conn: TFDConnection;
-  const ArquivoIni: string);
+procedure TFRM_Atualizar_BD.CarregarParametrosMySQL(Conn: TFDConnection);
 var
   Ini: TIniFile;
+  ArquivoIni: string;
 begin
+  ArquivoIni := ExtractFilePath(ParamStr(0)) + 'Project7.ini';
+
   if not FileExists(ArquivoIni) then
-    raise Exception.Create('Arquivo de parâmetros não encontrado: ' +
-      ArquivoIni);
+    raise Exception.Create('Arquivo de parâmetros não encontrado: ' + ArquivoIni);
+
   Ini := TIniFile.Create(ArquivoIni);
   try
     Conn.Params.Clear;
-    Conn.Params.Add('DriverID=MySQL');
-    Conn.Params.Add('Server=' + Ini.ReadString('MySQL', 'Server', 'localhost'));
-    Conn.Params.Add('Port=' + Ini.ReadString('MySQL', 'Port', '3306'));
-    Conn.Params.Add('Database=' + Ini.ReadString('MySQL', 'Database', ''));
-    Conn.Params.Add('User_Name=' + Ini.ReadString('MySQL', 'User', 'root'));
-    Conn.Params.Add('Password=' + Ini.ReadString('MySQL', 'Password', ''));
+    Conn.Params.Values['DriverID']  := 'MySQL';
+    Conn.Params.Values['Server']    := Ini.ReadString('MySQL', 'Server', '');
+    Conn.Params.Values['Port']      := Ini.ReadString('MySQL', 'Port', '3306');
+    Conn.Params.Values['Database']  := Ini.ReadString('MySQL', 'Database', '');
+    Conn.Params.Values['User_Name'] := Ini.ReadString('MySQL', 'User', '');
+    Conn.Params.Values['Password']  := Ini.ReadString('MySQL', 'Password', '');
     Conn.LoginPrompt := False;
   finally
     Ini.Free;
@@ -1051,7 +1052,7 @@ var
 begin
   iniFile := ChangeFileExt(Application.ExeName, '.ini');
   if FDConnection1.Params.Count = 0 then
-    CarregarParametrosMySQL(FDConnection1, iniFile);
+    CarregarParametrosMySQL(FDConnection1);
   try
     EnsureConnections;
     Executa_Script_6;

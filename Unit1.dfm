@@ -60,12 +60,7 @@ object FRM_Atualizar_BD: TFRM_Atualizar_BD
     TabOrder = 2
   end
   object FDConnection1: TFDConnection
-    Params.Strings = (
-      'Database=bitcomteste'
-      'Password=006023leBD2025!'
-      'User_Name=root'
-      'DriverID=MySQL')
-    Connected = True
+    LoginPrompt = False
     Left = 376
     Top = 72
   end
