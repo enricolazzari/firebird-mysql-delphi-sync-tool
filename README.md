@@ -1,69 +1,73 @@
-# sincronizador-delphi-firebird-mysql
+# delphi-firebird-mysql-synchronizer
 
-Sincronizador de dados entre Firebird e MySQL desenvolvido em Delphi.
+Data synchronizer between Firebird and MySQL developed in Delphi.
 
-Este projeto é uma ferramenta de sincronização unidirecional desenvolvida em Delphi 10.4 (32-bits). Sua principal função é ler a estrutura e os dados de um banco de dados Firebird 3.5 e replicá-los em um banco de dados MySQL 8.0.43, mantendo o MySQL como um espelho atualizado do Firebird.
+This project is a **unidirectional synchronization tool** developed in Delphi 10.4 (32-bit). Its main purpose is to read the structure and data from a Firebird 3.5 database and replicate it to a MySQL 8.0.43 database, keeping MySQL as an up-to-date mirror of Firebird.
 
-## ✨ Principais Funcionalidades
+![Delphi](https://img.shields.io/badge/Delphi-10.4-blue)
+![Firebird](https://img.shields.io/badge/Firebird-3.5-orange)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-green)
 
-* **Replicação de Esquema:** Cria automaticamente tabelas no MySQL com base no esquema existente no Firebird, convertendo os tipos de dados de forma compatível.
-* **Sincronização de Dados (Upsert):** Insere novos registros e atualiza registros existentes do Firebird para o MySQL de forma eficiente, utilizando o comando `INSERT ... ON DUPLICATE KEY UPDATE`.
-* **Rastreamento de Alterações:** Utiliza um campo `ATUALIZADO` e triggers no Firebird para marcar registros que foram inseridos ou modificados, garantindo que apenas os dados necessários sejam sincronizados.
-* **Tratamento de Exclusões:** Emprega uma tabela `LOG_EXCLUSOES` e triggers de exclusão no Firebird para replicar as deleções de registros no banco de dados MySQL.
-* **Log de Operações:** Gera um arquivo `log_sincronizacao.txt` com o registro detalhado das operações e possíveis erros ocorridos durante o processo.
+## ✨ Key Features
 
-## 🛠️ Tecnologias e Pré-requisitos
+* **Schema Replication:** Automatically creates tables in MySQL based on the existing Firebird schema, converting data types in a compatible way.
+* **Data Synchronization (Upsert):** Inserts new records and updates existing ones from Firebird to MySQL efficiently using the `INSERT ... ON DUPLICATE KEY UPDATE` statement.
+* **Change Tracking:** Uses an `UPDATED` field and Firebird triggers to mark inserted or modified records, ensuring only the necessary data is synchronized.
+* **Deletion Handling:** Employs a `LOG_DELETIONS` table and delete triggers in Firebird to replicate record deletions in the MySQL database.
+* **Operation Logging:** Generates a `synchronization_log.txt` file with a detailed record of operations and possible errors during the process.
 
-* **Linguagem:** Delphi 10.4 (versão 32-bits)
-* **Banco de Dados (Origem):** Firebird 3.5
-* **Banco de Dados (Destino):** MySQL 8.0.43
-* **Componentes de Acesso:** InterBase Express (IBX) para Firebird e FireDAC para MySQL.
-* **Ferramentas SGBD:** IBExpert (Firebird) e MySQL Workbench (ou similar).
+## 🛠️ Technologies and Prerequisites
 
-### Driver MySQL
+* **Language:** Delphi 10.4 (32-bit)
+* **Source Database:** Firebird 3.5
+* **Target Database:** MySQL 8.0.43
+* **Access Components:** InterBase Express (IBX) for Firebird and FireDAC for MySQL.
+* **DB Tools:** IBExpert (Firebird) and MySQL Workbench (or similar).
+* **IDE:** Embarcadero Delphi 10.4 32-Bits
 
-É **obrigatório** o uso do driver `libmysql.dll` de **32 bits**. Como a IDE Delphi utilizada é um ambiente de 32 bits, o driver de conexão com o banco de dados deve seguir a mesma arquitetura para garantir a compatibilidade.
+### MySQL Driver
 
-## ⚙️ Configuração e Uso
+It is **mandatory** to use the **32-bit** `libmysql.dll` driver. Since the Delphi IDE used is a 32-bit environment, the database connection driver must match the same architecture to ensure compatibility. Download link: https://dev.mysql.com/downloads/connector/c/
 
-A configuração do ambiente é um processo manual e requer os seguintes passos:
+## ⚙️ Setup and Usage
 
-1.  **Criação dos Bancos de Dados:** Crie manualmente os bancos de dados vazios no Firebird e no MySQL. A aplicação não cria os bancos, apenas gerencia as tabelas e os dados dentro deles.
+Setting up the environment is a manual process and requires the following steps:
 
-2.  **Ambiente Delphi:**
-    * Abra o projeto no Embarcadero Delphi.
-    * No formulário, adicione manualmente todos os componentes listados na seção `type` do código (ex: `TFDConnection`, `TIBDatabase`, `TButton`, `TProgressBar`, etc.).
-    * Conecte as propriedades e os eventos dos componentes conforme a implementação no código.
-    * Configure as propriedades do componente `TIBDatabase` (IBX) para que ele se conecte ao seu banco de dados Firebird.
+1.  **Database Creation:** Manually create empty databases in Firebird and MySQL. The application does not create databases; it only manages tables and data within them.
 
-3.  **Arquivo de Configuração (`.ini`):**
-    * As credenciais de conexão com o MySQL são carregadas de um arquivo de configuração. Crie um arquivo com o mesmo nome do seu executável e a extensão `.ini` (ex: `Sincronizador.ini`).
-    * Este arquivo `.ini` e a `libmysql.dll` devem estar na mesma pasta do executável gerado (geralmente `Win32\Debug` ou `Win32\Release`).
-    * Adicione a seguinte estrutura ao arquivo, preenchendo com seus dados:
+2.  **Delphi Environment:**
+    * Open the project in Embarcadero Delphi.
+    * On the form, manually add all components listed in the `type` section of the code (e.g., `TFDConnection`, `TIBDatabase`, `TButton`, `TProgressBar`, etc.).
+    * Connect the properties and events of the components according to the code implementation.
+    * Configure the `TIBDatabase` (IBX) component properties to connect to your Firebird database.
+
+3.  **Configuration File (`.ini`):**
+    * MySQL connection credentials are loaded from a configuration file. Create a file with the same name as your executable and the `.ini` extension (e.g., `Synchronizer.ini`).
+    * This `.ini` file and the `libmysql.dll` must be in the same folder as the generated executable (usually `Win32\Debug` or `Win32\Release`).
+    * Add the following structure to the file, filling in your details:
 
     ```ini
     [MySQL]
     DriverID=MySQL
-    Database=nome_do_seu_banco_mysql
-    User=seu_usuario_mysql
-    Password=sua_senha_mysql
+    Database=your_mysql_database_name
+    User=your_mysql_user
+    Password=your_mysql_password
     Server=localhost
     Port=3306
-    VendorLib= C:\Caminho\Ate\Pasta\Executavel\libmysql.dll
+    VendorLib=C:\Path\To\Executable\libmysql.dll
     ```
-   *Repita o processo apenas sem a parte do vendorlib para o Firebird.
+   *Repeat the process without the `VendorLib` part for Firebird.
 
-   
-4.  **Permissões no MySQL:**
-    * Certifique-se de que o usuário do MySQL informado no `.ini` tem as permissões necessárias (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`) no banco de dados de destino.
-    * **Nota:** Se você acabou de criar o usuário ou alterar suas permissões manualmente via linha de comando, pode ser necessário executar o comando `FLUSH PRIVILEGES;` no MySQL para que as alterações entrem em vigor imediatamente.
+4.  **MySQL Permissions:**
+    * Ensure the MySQL user in the `.ini` file has the necessary permissions (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`) on the target database.
+    * **Note:** If you have just created the user or changed permissions manually via command line, it may be necessary to run `FLUSH PRIVILEGES;` in MySQL to apply the changes immediately. This command is crucial for Delphi-MySQL connectivity.
 
-5.  **Execução:**
-    * Compile e execute a aplicação. O processo de sincronização será iniciado ao acionar o evento correspondente (ex: clique de um botão).
+5.  **Execution:**
+    * Compile and run the application. The synchronization process will start when the corresponding event is triggered (e.g., a button click).
 
-## ⚠️ Notas Importantes
+## ⚠️ Important Notes
 
-* **Atualizações em Lote (Batch):** Por padrão, a sincronização é feita registro a registro. Para cenários com grande quantidade de dados, recomenda-se adaptar o código para usar atualizações em lote (como o recurso `Array DML` do FireDAC) para uma performance superior.
-* **Interface Gráfica (UI):** Os componentes visuais (botões, barras de progresso, labels) devem ser adicionados e posicionados conforme o arquivo .dfm no formulário. O código fornecido contém apenas a lógica de funcionamento.
-* **Segurança:** As credenciais de conexão são armazenadas em texto plano no arquivo `.ini`. Para ambientes de produção, considere utilizar métodos mais seguros para gerenciar essas informações.
-
+* **Batch Updates:** By default, synchronization is done record by record. For scenarios with a large amount of data, it is recommended to adapt the code to use batch updates (such as FireDAC's `Array DML`) for better performance.
+* **User Interface (UI):** Visual components (buttons, progress bars, labels) must be added and positioned according to the `.dfm` file in the form. The provided code contains only the logic.
+* **Security:** Connection credentials are stored in plain text in the `.ini` file. For production environments, consider using more secure methods to manage these credentials.
+* **About the INI and LIBS:** All files containing information that is used in the project must be added to the directory where the program compiles.
