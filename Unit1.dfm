@@ -82,7 +82,7 @@ object FRM_Atualizar_BD: TFRM_Atualizar_BD
   object DataSource1: TDataSource
     DataSet = ibqueryestrutura
     Left = 136
-    Top = 16
+    Top = 40
   end
   object IBDatabase1: TIBDatabase
     Connected = True
@@ -102,7 +102,7 @@ object FRM_Atualizar_BD: TFRM_Atualizar_BD
     CachedUpdates = False
     ParamCheck = True
     Left = 16
-    Top = 16
+    Top = 40
   end
   object IBDataSet1: TIBDataSet
     Database = IBDatabase1
