@@ -19,10 +19,11 @@ Este projeto é uma ferramenta de sincronização unidirecional desenvolvida em 
 * **Banco de Dados (Destino):** MySQL 8.0.43
 * **Componentes de Acesso:** InterBase Express (IBX) para Firebird e FireDAC para MySQL.
 * **Ferramentas SGBD:** IBExpert (Firebird) e MySQL Workbench (ou similar).
+* **IDE Utilizada:** Embarcadero Delphi 10.4 32-Bits
 
 ### Driver MySQL
 
-É **obrigatório** o uso do driver `libmysql.dll` de **32 bits**. Como a IDE Delphi utilizada é um ambiente de 32 bits, o driver de conexão com o banco de dados deve seguir a mesma arquitetura para garantir a compatibilidade.
+É **obrigatório** o uso do driver `libmysql.dll` de **32 bits**. Como a IDE Delphi utilizada é um ambiente de 32 bits, o driver de conexão com o banco de dados deve seguir a mesma arquitetura para garantir a compatibilidade. Link para download: https://dev.mysql.com/downloads/connector/c/
 
 ## ⚙️ Configuração e Uso
 
@@ -56,7 +57,7 @@ A configuração do ambiente é um processo manual e requer os seguintes passos:
    
 4.  **Permissões no MySQL:**
     * Certifique-se de que o usuário do MySQL informado no `.ini` tem as permissões necessárias (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER`) no banco de dados de destino.
-    * **Nota:** Se você acabou de criar o usuário ou alterar suas permissões manualmente via linha de comando, pode ser necessário executar o comando `FLUSH PRIVILEGES;` no MySQL para que as alterações entrem em vigor imediatamente.
+    * **Nota:** Se você acabou de criar o usuário ou alterar suas permissões manualmente via linha de comando, pode ser necessário executar o comando `FLUSH PRIVILEGES;` no MySQL para que as alterações entrem em vigor imediatamente. Esse comando é crucial para realizar a conexão entre o Delphi e o MySQL.
 
 5.  **Execução:**
     * Compile e execute a aplicação. O processo de sincronização será iniciado ao acionar o evento correspondente (ex: clique de um botão).
