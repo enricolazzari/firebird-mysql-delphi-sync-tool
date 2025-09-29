@@ -275,7 +275,7 @@ begin
   if Result.Count = 0 then
   begin
     mensagem := '[AVISO] Tabela "' + Tabela +
-      '" não possui Chave Primária (PK) definida. Usando o primeiro campo como fallback.';
+      '" nÃ£o possui Chave PrimÃ¡ria (PK) definida. Usando o primeiro campo como fallback.';
     geralog;
     ibqueryestrutura.SQL.Text := 'SELECT TRIM(RDB$FIELD_NAME) AS FIELD_NAME ' +
       'FROM RDB$RELATION_FIELDS ' + 'WHERE RDB$RELATION_NAME = :TABELA ' +
@@ -296,7 +296,7 @@ var
   ListaChavePrimaria: TStringList;
 begin
   if not ValidarIdentificador(NomeTabela) then
-    raise Exception.Create('Nome de tabela inválido: ' + NomeTabela);
+    raise Exception.Create('Nome de tabela invÃ¡lido: ' + NomeTabela);
   mensagem := 'Criando tabela MySQL: ' + NomeTabela;
   geralog;
   qFirebird := TIBQuery.Create(nil);
@@ -315,7 +315,7 @@ begin
     EnsureTransaction;
     qFirebird.Open;
     if qFirebird.IsEmpty then
-      raise Exception.Create('Tabela não encontrada no Firebird: ' + NomeTabela);
+      raise Exception.Create('Tabela nÃ£o encontrada no Firebird: ' + NomeTabela);
     ListaChavePrimaria := GetPrimaryKeys(NomeTabela);
     CreateSQL := Format('CREATE TABLE `%s` (', [NomeTabela]);
     isFirst := True;
@@ -384,8 +384,8 @@ begin
   try
     if ListaChavePrimaria.Count = 0 then
     begin
-      mensagem := 'Não foi possível criar trigger de exclusão para ' + Tabela +
-        ' pois não foi encontrada uma chave.';
+      mensagem := 'NÃ£o foi possÃ­vel criar trigger de exclusÃ£o para ' + Tabela +
+        ' pois nÃ£o foi encontrada uma chave.';
       geralog;
       Exit;
     end;
@@ -408,7 +408,7 @@ begin
     EnsureTransaction;
     ibqueryestrutura.ExecSQL;
     ibqueryestrutura.Transaction.CommitRetaining;
-    mensagem := 'Trigger de exclusão criada/atualizada: ' + TriggerName;
+    mensagem := 'Trigger de exclusÃ£o criada/atualizada: ' + TriggerName;
     geralog;
   finally
     ListaChavePrimaria.Free;
@@ -477,7 +477,7 @@ begin
   ArquivoIni := ExtractFilePath(ParamStr(0)) + 'Project7.ini';
 
   if not FileExists(ArquivoIni) then
-    raise Exception.Create('Arquivo de parâmetros não encontrado: ' + ArquivoIni);
+    raise Exception.Create('Arquivo de parÃ¢metros nÃ£o encontrado: ' + ArquivoIni);
 
   Ini := TIniFile.Create(ArquivoIni);
   try
@@ -529,7 +529,7 @@ var
 begin
   if not ValidarIdentificador(pNomeCampo) or not
     ValidarIdentificador(pNomeTabela) then
-    raise Exception.Create('Identificador inválido');
+    raise Exception.Create('Identificador invÃ¡lido');
   sql := Format('ALTER TABLE `%s` ADD COLUMN `%s` %s',
     [pNomeTabela, pNomeCampo, pTipo]);
   mensagem := 'MySQL SQL: ' + sql;
@@ -621,7 +621,7 @@ var
 begin
   if not ValidarIdentificador(pNomeCampo) or not
     ValidarIdentificador(pNomeTabela) then
-    raise Exception.Create('Identificador inválido');
+    raise Exception.Create('Identificador invÃ¡lido');
   sql := Format('ALTER TABLE `%s` ADD COLUMN `%s` %s DEFAULT %s',
     [pNomeTabela, pNomeCampo, pTipo, QuotedStr(pValorDef)]);
   mensagem := 'MySQL SQL: ' + sql;
@@ -650,7 +650,7 @@ var
 begin
   if not ValidarIdentificador(pNomeCampo) or not
     ValidarIdentificador(pNomeTabela) then
-    raise Exception.Create('Identificador inválido');
+    raise Exception.Create('Identificador invÃ¡lido');
   if pValorDef <> '' then
     sql := Format('ALTER TABLE %s ADD %s %s DEFAULT %s', [pNomeTabela,
       pNomeCampo, pTipo, QuotedStr(pValorDef)])
@@ -687,7 +687,7 @@ var
 begin
   if not ValidarIdentificador(pNomeCampo) or not
     ValidarIdentificador(pNomeTabela) then
-    raise Exception.Create('Identificador inválido');
+    raise Exception.Create('Identificador invÃ¡lido');
   sql := Format('ALTER TABLE %s ADD %s %s', [pNomeTabela, pNomeCampo, pTipo]);
   mensagem := 'Firebird SQL: ' + sql;
   geralog;
@@ -908,7 +908,7 @@ begin
         if ListaPKCampos.Count = 0 then
         begin
           mensagem :=
-            'Erro ao processar exclusão: Não foi possível determinar a PK da tabela '
+            'Erro ao processar exclusÃ£o: NÃ£o foi possÃ­vel determinar a PK da tabela '
             + NomeTabela;
           geralog;
           QFirebirdDel.Next;
@@ -1008,14 +1008,14 @@ begin
     ProgressBar1.Position := 0;
     ProgressBar1.Visible := True;
     FStartTime := Now;
-    mensagem := Format('Iniciando sincronização de %d tabelas, com um total de %d registros...',
+    mensagem := Format('Iniciando sincronizaÃ§Ã£o de %d tabelas, com um total de %d registros...',
       [TotalTabelas, FTotalRegistros]);
     geralog;
     for i := 0 to ListaTabelas.Count - 1 do
     begin
       if SameText(ListaTabelas[i], 'LOG_EXCLUSOES') then
         Continue;
-      Self.Caption := Format('Sincronização - Tabela %d/%d: %s',
+      Self.Caption := Format('SincronizaÃ§Ã£o - Tabela %d/%d: %s',
         [i + 1, TotalTabelas, ListaTabelas[i]]);
       SincronizaTabela(ListaTabelas[i]);
       CriaTriggerChar(ListaTabelas[i]);
@@ -1033,10 +1033,10 @@ begin
       end;
     end;
     ProgressBar1.Position := FTotalRegistros;
-    Self.Caption := 'Sincronização Concluída';
+    Self.Caption := 'SincronizaÃ§Ã£o ConcluÃ­da';
     ProgressBar1.Visible := False;
-    LabelTempoRestante.Caption := 'Concluído!';
-    mensagem := Format('Sincronização de todas as %d tabelas e %d registros concluída com sucesso!',
+    LabelTempoRestante.Caption := 'ConcluÃ­do!';
+    mensagem := Format('SincronizaÃ§Ã£o de todas as %d tabelas e %d registros concluÃ­da com sucesso!',
       [TotalTabelas, FTotalRegistros]);
     geralog;
   finally
@@ -1056,7 +1056,7 @@ begin
   try
     EnsureConnections;
     Executa_Script_6;
-    ShowMessage('Sincronização concluída!');
+    ShowMessage('SincronizaÃ§Ã£o concluÃ­da!');
   except
     on E: Exception do
       ShowMessage('Erro: ' + E.Message);
