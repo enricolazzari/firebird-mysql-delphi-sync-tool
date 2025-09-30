@@ -15,6 +15,7 @@ This project is a **unidirectional synchronization tool** developed in Delphi 10
 * **Change Tracking:** Uses an `UPDATED` field and Firebird triggers to mark inserted or modified records, ensuring only the necessary data is synchronized.
 * **Deletion Handling:** Employs a `LOG_DELETIONS` table and delete triggers in Firebird to replicate record deletions in the MySQL database.
 * **Operation Logging:** Generates a `synchronization_log.txt` file with a detailed record of operations and possible errors during the process.
+* **Batch Updates:** Way faster than the average synchronyzation method and it's size is customizable to your needs.
 
 ![Demonstração da Sincronização](assets/synctoolfirebirdmysql.gif)
 
@@ -29,7 +30,7 @@ This project is a **unidirectional synchronization tool** developed in Delphi 10
 
 ### MySQL Driver
 
-It is **mandatory** to use the **32-bit** `libmysql.dll` driver. Since the Delphi IDE used is a 32-bit environment, the database connection driver must match the same architecture to ensure compatibility. Download link: https://dev.mysql.com/downloads/connector/c/
+It is **mandatory** to use the **32-bit** `libmysql.dll` driver if you use the Delphi IDE in a 32-bit environment, the database connection driver must match the same architecture to ensure compatibility. Download link: https://dev.mysql.com/downloads/connector/c/ . If that`s not the case, you might not need to install that.
 
 ## ⚙️ Setup and Usage
 
@@ -39,12 +40,12 @@ Setting up the environment is a manual process and requires the following steps:
 
 2.  **Delphi Environment:**
     * Open the project in Embarcadero Delphi.
-    * On the form, manually add all components listed in the `type` section of the code (e.g., `TFDConnection`, `TIBDatabase`, `TButton`, `TProgressBar`, etc.).
+    * On the form, manually adjust all components listed in the `type` section of the code in the file (e.g., `TFDConnection`, `TIBDatabase`, `TButton`, `TProgressBar`, etc.).
     * Connect the properties and events of the components according to the code implementation.
     * Configure the `TIBDatabase` (IBX) component properties to connect to your Firebird database.
 
 3.  **Configuration File (`.ini`):**
-    * MySQL connection credentials are loaded from a configuration file. Create a file with the same name as your executable and the `.ini` extension (e.g., `Synchronizer.ini`).
+    * MySQL connection credentials are loaded from a configuration file. Create a file or use the file in the exemple with the same name as your executable and the `.ini` extension (e.g., `Synchronizer.ini`).
     * This `.ini` file and the `libmysql.dll` must be in the same folder as the generated executable (usually `Win32\Debug` or `Win32\Release`).
     * Add the following structure to the file, filling in your details:
 
@@ -69,7 +70,7 @@ Setting up the environment is a manual process and requires the following steps:
 
 ## ⚠️ Important Notes
 
-* **Batch Updates:** By default, synchronization is done record by record. For scenarios with a large amount of data, it is recommended to adapt the code to use batch updates (such as FireDAC's `Array DML`) for better performance.
-* **User Interface (UI):** Visual components (buttons, progress bars, labels) must be added and positioned according to the `.dfm` file in the form. The provided code contains only the logic.
+* **Batch Updates:** The tool now supports Batch Updates, by default it's set on a low size because the 32-bit version of the Delphi IDE has low memory, if you use the 64-bit it's recommendable that you set the size at your need for maximum performance
+* **User Interface (UI):** Visual components (buttons, progress bars, labels) will be added and positioned according to the `.dfm` file in the form.
 * **Security:** Connection credentials are stored in plain text in the `.ini` file. For production environments, consider using more secure methods to manage these credentials.
 * **About the INI and LIBS:** All files containing information that is used in the project must be added to the directory where the program compiles.
