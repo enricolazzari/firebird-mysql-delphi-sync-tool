@@ -17,7 +17,7 @@ This project is a **unidirectional synchronization tool** developed in Delphi 10
 * **Operation Logging:** Generates a `synchronization_log.txt` file with a detailed record of operations and possible errors during the process.
 * **Batch Updates:** Way faster than the average synchronyzation method and it's size is customizable to your needs.
 
-![Demonstração da Sincronização](assets/synctoolfirebirdmysql.gif)
+![Demonstração da Sincronização](assets/synctoolfirebirdmysqlFINAL.gif)
 
 ## 🛠️ Technologies and Prerequisites
 
