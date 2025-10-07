@@ -785,11 +785,11 @@ begin
     if TotalRegistros = 0 then
       Exit;
 
-    BatchSize := 200;
+    BatchSize := 500;
     if ListaCampos.Count > 50 then
-      BatchSize := 100
+      BatchSize := 250
     else if ListaCampos.Count > 100 then
-      BatchSize := 50;
+      BatchSize := 100;
 
     ProgressBar1.Max := FTotalRegistros;
     FContadorGlobal := FContadorGlobal - TotalRegistros;
