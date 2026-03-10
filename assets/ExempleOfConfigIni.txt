@@ -1,0 +1,10 @@
+[MySQL]
+DriverID=MySQL/Firebird
+Database=database_name
+User_Name=user_name 
+Password=123456789
+Server=xxx.xxx.xx.x
+Port=3306
+ServerVersion=x.x.xx.xx
+SSLMode=None
+VendorLib=C:\Path\To\Directory\libmysql.dll

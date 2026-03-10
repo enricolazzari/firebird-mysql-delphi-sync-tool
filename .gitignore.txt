@@ -1,0 +1,19 @@
+# Arquivos gerados pelo Delphi
+*.exe
+*.dll
+*.obj
+*.o
+*.dcu
+*.bak
+*.~*
+*.dsk
+*.dof
+*.cfg
+*.drc
+*.map
+
+# Pastas de compilação
+Win32/
+Win64/
+__history/
+__recovery/
